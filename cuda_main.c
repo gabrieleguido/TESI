@@ -5,10 +5,10 @@ int main(){
     MyCudaItem item;
     MyCudaMalloc(&item,10);
     for(int i = 0;i<item.buffer_size;i++){
-        item.src_buffer[i] = 0;
-        item.dest_buffer[i] = i;
+        item.src_buffer[i] = i;
+        item.dest_buffer[i] = 0;
     }
     MyCudaBuffersPrint(&item);
-    MyCudaMemSwap(&item);
+    MyCudaReduction(&item);
     MyCudaBuffersPrint(&item);
 }
