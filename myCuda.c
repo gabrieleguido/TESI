@@ -88,6 +88,7 @@ void* MyCudaReductionPass(void* args){
 
 void MyCudaReduction(MyCudaItem* cuda_item){
     assert(cuda_item && "Cuda_item non valido");
+
     int passes = MyCudaIterations(cuda_item);
     printf("PASSI: %d\n",passes);
     int res_size = cuda_item->buffer_size;
@@ -100,11 +101,7 @@ void MyCudaReduction(MyCudaItem* cuda_item){
             //printf("BLOCK %d\n",bid);
             for(int tid = 0; tid < BLOCK_DIM; tid++){
                 //printf("CREO THREAD %d\n",tid);
-                thread_arguments[tid].blockIdx = bid;
-                thread_arguments[tid].dest = cuda_item->dest_buffer;
-                thread_arguments[tid].src = cuda_item->src_buffer;
-                thread_arguments[tid].size = res_size;
-                thread_arguments[tid].threadIdx = tid;
+                MyCudaSetThreadArgs(&thread_arguments[tid],tid,bid,cuda_item->dest_buffer,cuda_item->src_buffer,res_size);
 
                 //kernel launch:
                 pthread_create(&threads[tid],NULL,MyCudaReductionPass,&thread_arguments[tid]);
@@ -122,4 +119,34 @@ void MyCudaReduction(MyCudaItem* cuda_item){
         }
     }
     printf("RES=%d\n",cuda_item->dest_buffer[0]);
+}
+
+void MyCudaSetThreadArgs(ThreadArgs* targs,int threadIdx, int blockIdx, int* dest, int* src, int size){
+    /*prepara gli argomenti per il kernel launch*/
+    assert(targs && "ThreadArgs non valida");
+    targs->threadIdx = threadIdx;
+    targs->blockIdx = blockIdx;
+    targs->dest = dest;
+    targs->src = src;
+    targs->size = size;
+}
+
+void MyCudaKernelLaunch(MyCudaItem* cuda_item){
+    int passes = MyCudaIterations(cuda_item);
+    pthread_t threads[BLOCK_DIM];
+    ThreadArgs thread_arguments[BLOCK_DIM];
+    for(int bid = 0; bid<passes;bid++){
+            //printf("BLOCK %d\n",bid);
+            for(int tid = 0; tid < BLOCK_DIM; tid++){
+                //printf("CREO THREAD %d\n",tid);
+                MyCudaSetThreadArgs(&thread_arguments[tid],tid,bid,cuda_item->dest_buffer,cuda_item->src_buffer,res_size);
+
+                //kernel launch:
+                pthread_create(&threads[tid],NULL,MyCudaReductionPass,&thread_arguments[tid]);
+            }
+            for(int tid = 0; tid < BLOCK_DIM; tid++){
+                pthread_join(threads[tid],NULL);
+            }
+            
+        }
 }

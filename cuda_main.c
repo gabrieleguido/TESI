@@ -1,6 +1,6 @@
 #include "myCuda.h"
 #include <stdio.h>
-#define N 101
+#define N 10
 
 int main(){
     MyCudaItem item;

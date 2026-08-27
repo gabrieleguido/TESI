@@ -36,6 +36,8 @@ void* MyCudaReductionPass(void* args);
 
 int MyCudaIterations(MyCudaItem* cuda_item);
 
+void MyCudaSetThreadArgs(ThreadArgs* targs,int threadIdx, int blockIdx, int* dest, int* src, int size);
+
 
 
 
