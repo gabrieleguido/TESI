@@ -28,7 +28,7 @@ void MyCudaMemSwap(MyCudaItem* cuda_item){
     for(int i = 0; i<cuda_item->buffer_size;i++){
         cuda_item->dest_buffer[i] = 0; 
     }
-    printf("SWAP\n");
+    // printf("SWAP\n");
 }
 
 
@@ -59,6 +59,19 @@ void MyCudaBuffersPrint(MyCudaItem* cuda_item){
     }
     printf("----------------------\n");
 }
+void BuffersPrint(int* src, int* dest, int size){
+
+    printf("----------------------\n");
+    printf("SRC:\n");
+    for(int i = 0; i<size;i++){
+        printf("src[%d] = %d,\n",i,src[i]);
+    }
+    printf("DEST:\n");
+    for(int i = 0; i<size;i++){
+        printf("dest[%d] = %d,\n",i,dest[i]);
+    }
+    printf("----------------------\n");
+}
 
 
 
@@ -68,7 +81,7 @@ int MyCudaIterations(MyCudaItem* item){
     return (item->buffer_size+BLOCK_DIM-1)/BLOCK_DIM;
 }
 
-void* MyCudaReductionPass(void* args){
+void* MyCudaReductionKernel(void* args){
     ThreadArgs* info = (ThreadArgs*) args;
 
     int idx = info->threadIdx+info->blockIdx*BLOCK_DIM;
@@ -81,38 +94,22 @@ void* MyCudaReductionPass(void* args){
     if(idx >= size){
         pthread_exit(NULL);
     }
-    printf("dest[%d] = %d+%d\n",idx,src[2*idx],src[2*idx+1]);
+    // printf("dest[%d] = %d+%d\n",idx,src[2*idx],src[2*idx+1]);
     dest[idx] = src[2*idx]+src[2*idx+1];
     pthread_exit(NULL);
 }
 
 void MyCudaReduction(MyCudaItem* cuda_item){
     assert(cuda_item && "Cuda_item non valido");
+ 
+    cuda_item->size = cuda_item->buffer_size;
+    cuda_item->size = (cuda_item->size+1)/2;
+    cuda_item->kernel_fn = MyCudaReductionKernel;
 
-    int passes = MyCudaIterations(cuda_item);
-    printf("PASSI: %d\n",passes);
-    int res_size = cuda_item->buffer_size;
-    res_size = (res_size+1)/2;
-    pthread_t threads[BLOCK_DIM];
-    ThreadArgs thread_arguments[BLOCK_DIM];
     while(1){
-        printf("DESTSIZE: %d\n",res_size);
-        for(int bid = 0; bid<passes;bid++){
-            //printf("BLOCK %d\n",bid);
-            for(int tid = 0; tid < BLOCK_DIM; tid++){
-                //printf("CREO THREAD %d\n",tid);
-                MyCudaSetThreadArgs(&thread_arguments[tid],tid,bid,cuda_item->dest_buffer,cuda_item->src_buffer,res_size);
-
-                //kernel launch:
-                pthread_create(&threads[tid],NULL,MyCudaReductionPass,&thread_arguments[tid]);
-            }
-            for(int tid = 0; tid < BLOCK_DIM; tid++){
-                pthread_join(threads[tid],NULL);
-            }
-            
-        }
-        if(res_size>1){
-            res_size = (res_size+1)/2;
+        MyCudaKernelLaunch(cuda_item);
+        if(cuda_item->size>1){
+            cuda_item->size = (cuda_item->size+1)/2;
             MyCudaMemSwap(cuda_item);
         }else{
             break;
@@ -132,17 +129,20 @@ void MyCudaSetThreadArgs(ThreadArgs* targs,int threadIdx, int blockIdx, int* des
 }
 
 void MyCudaKernelLaunch(MyCudaItem* cuda_item){
+    assert(cuda_item && "Cuda_item non valido");
+
     int passes = MyCudaIterations(cuda_item);
+    // printf("PASSI: %d\n",passes);
     pthread_t threads[BLOCK_DIM];
     ThreadArgs thread_arguments[BLOCK_DIM];
     for(int bid = 0; bid<passes;bid++){
             //printf("BLOCK %d\n",bid);
             for(int tid = 0; tid < BLOCK_DIM; tid++){
                 //printf("CREO THREAD %d\n",tid);
-                MyCudaSetThreadArgs(&thread_arguments[tid],tid,bid,cuda_item->dest_buffer,cuda_item->src_buffer,res_size);
+                MyCudaSetThreadArgs(&thread_arguments[tid],tid,bid,cuda_item->dest_buffer,cuda_item->src_buffer,cuda_item->size);
 
                 //kernel launch:
-                pthread_create(&threads[tid],NULL,MyCudaReductionPass,&thread_arguments[tid]);
+                pthread_create(&threads[tid],NULL,cuda_item->kernel_fn,&thread_arguments[tid]);
             }
             for(int tid = 0; tid < BLOCK_DIM; tid++){
                 pthread_join(threads[tid],NULL);
@@ -150,3 +150,49 @@ void MyCudaKernelLaunch(MyCudaItem* cuda_item){
             
         }
 }
+
+void MyCudaPrefixSum(MyCudaItem* cuda_item){
+    assert(cuda_item && "Cuda_item non valido");
+ 
+    cuda_item->size = cuda_item->buffer_size;
+    cuda_item->size = (cuda_item->size+1)/2;
+    cuda_item->kernel_fn = MyCudaPrefixDownPassKernel;
+
+    MyCudaBuffersPrint(cuda_item);
+
+    int* odest = cuda_item->dest_buffer;
+    int* osrc = cuda_item->src_buffer;
+
+    while(cuda_item->size<cuda_item->buffer_size){
+        MyCudaKernelLaunch(cuda_item);
+        BuffersPrint(osrc,odest,cuda_item->buffer_size);
+        cuda_item->src_buffer = cuda_item->dest_buffer;
+        cuda_item->dest_buffer += cuda_item->size; 
+        cuda_item->size += (cuda_item->size+1)/2;
+    }
+    cuda_item->src_buffer = osrc;
+    cuda_item->dest_buffer = odest;
+    MyCudaBuffersPrint(cuda_item);
+}
+void* MyCudaPrefixDownPassKernel(void* args){
+    ThreadArgs* info = (ThreadArgs*) args;
+
+    int idx = info->threadIdx+info->blockIdx*BLOCK_DIM;
+    int size = info->size;
+    int* src = info->src;
+    int* dest = info->dest;
+    
+    //printf("THREAD %d\n",idx);
+    
+    if(idx >= size){
+        pthread_exit(NULL);
+    }
+
+    dest[idx] = src[2*idx]+src[2*idx +1];
+    printf(">>>dest[%d] = %d+%d\n",idx,src[2*idx],src[2*idx+1]);
+    src[2*idx +1] = dest[idx];
+    printf(">>>src[%d] = %d\n",2*idx+1,src[2*idx +1]);
+
+
+}
+
