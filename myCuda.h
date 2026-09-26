@@ -1,4 +1,5 @@
 #define BLOCK_DIM 1024
+#define DEBUG 0
 
 typedef struct MyCudaItem MyCudaItem;
 typedef struct ThreadArgs ThreadArgs;
@@ -43,12 +44,15 @@ void MyCudaSetThreadArgs(ThreadArgs* targs,int threadIdx, int blockIdx, int* des
 
 void MyCudaKernelLaunch(MyCudaItem* cuda_item);
 
+int MyCudaIsPowerTwo(int n);
+
 void MyCudaPrefixSum(MyCudaItem* cuda_item);
 
 void* MyCudaPrefixDownPassKernel(void* args);
 
 void* MyCudaPrefixUpPassKernel(void* args);
 
+void MyCudaPrefixSumTest(MyCudaItem* cuda_item,int max_n);
 
 
 

@@ -74,7 +74,6 @@ void BuffersPrint(int* src, int* dest, int size){
 }
 
 
-
 int MyCudaIterations(MyCudaItem* item){
     /*calcola le iterazioni sul buffer per completarlo, arrotondando all'intero superiore*/
     assert(item && "CudaItem non valido");
@@ -151,23 +150,35 @@ void MyCudaKernelLaunch(MyCudaItem* cuda_item){
         }
 }
 
+int MyCudaIsPowerTwo(int n){
+    int res = n;
+    while(res>2){
+        if(res%2){
+            return 0;
+        }
+        res = res/2;
+    }
+    return 1;
+}
+
 void MyCudaPrefixSum(MyCudaItem* cuda_item){
     assert(cuda_item && "Cuda_item non valido");
+    assert(MyCudaIsPowerTwo(cuda_item->buffer_size) && "Size deve essere potenza di 2");
  
     cuda_item->size = cuda_item->buffer_size;
     cuda_item->size = (cuda_item->size+1)/2;
     cuda_item->kernel_fn = MyCudaPrefixDownPassKernel;
 
-    MyCudaBuffersPrint(cuda_item);
+    if(DEBUG)MyCudaBuffersPrint(cuda_item);
 
     int* orig_dets = cuda_item->dest_buffer;
     int* orig_src = cuda_item->src_buffer;
 
-    printf("DOWNPASS------\n");
+    if(DEBUG)printf("DOWNPASS------\n");
     while(cuda_item->size>0){
-        // printf("SIZE = %d\n",cuda_item->size);
+        if(DEBUG)printf("SIZE = %d\n",cuda_item->size);
         MyCudaKernelLaunch(cuda_item);
-        BuffersPrint(orig_src,orig_dets,cuda_item->buffer_size);
+        if(DEBUG)BuffersPrint(orig_src,orig_dets,cuda_item->buffer_size);
         if(cuda_item->size == 1){
             break;
         }
@@ -175,7 +186,7 @@ void MyCudaPrefixSum(MyCudaItem* cuda_item){
         cuda_item->dest_buffer += cuda_item->size; 
         cuda_item->size = (cuda_item->size+1)/2;
     }
-    // printf("dest'[0] = %d,src'[0] = %d\n",cuda_item->dest_buffer[0],cuda_item->src_buffer[0]);
+    if(DEBUG) printf("dest'[0] = %d,src'[0] = %d\n",cuda_item->dest_buffer[0],cuda_item->src_buffer[0]);
 
     //size = 1 perchè siamo appena usciti dal while
     cuda_item->size = 2;
@@ -185,14 +196,15 @@ void MyCudaPrefixSum(MyCudaItem* cuda_item){
     cuda_item->kernel_fn = MyCudaPrefixUpPassKernel;
 
 
-    printf("UPPASS------\n");
+    if(DEBUG)printf("UPPASS------\n");
 
     while(cuda_item->size*2 < cuda_item->buffer_size){
+        if(DEBUG)printf("size = %d",cuda_item->size);
         cuda_item->src_buffer = cuda_item->dest_buffer;
         cuda_item->dest_buffer -= cuda_item->size*2;
-        printf("dest'[0] = %d,src'[0] = %d\n",cuda_item->dest_buffer[0],cuda_item->src_buffer[0]);
+        if(DEBUG)printf("dest'[0] = %d,src'[0] = %d\n",cuda_item->dest_buffer[0],cuda_item->src_buffer[0]);
         MyCudaKernelLaunch(cuda_item);
-        BuffersPrint(orig_src,orig_dets,cuda_item->buffer_size);
+        if(DEBUG)BuffersPrint(orig_src,orig_dets,cuda_item->buffer_size);
         cuda_item->size *= 2;
     }
 
@@ -201,9 +213,8 @@ void MyCudaPrefixSum(MyCudaItem* cuda_item){
 
     //ultima chiamata per quando siamo tornati su 2 buffer diversi
     MyCudaKernelLaunch(cuda_item);
-    BuffersPrint(orig_src,orig_dets,cuda_item->buffer_size);
 
-    MyCudaBuffersPrint(cuda_item);
+    if(DEBUG)MyCudaBuffersPrint(cuda_item);
 }
 void* MyCudaPrefixDownPassKernel(void* args){
     ThreadArgs* info = (ThreadArgs*) args;
@@ -220,9 +231,9 @@ void* MyCudaPrefixDownPassKernel(void* args){
     }
 
     dest[idx] = src[2*idx]+src[2*idx +1];
-    printf(">>>dest[%d] = %d+%d\n",idx,src[2*idx],src[2*idx+1]);
+    if(DEBUG)printf(">>>dest[%d] = %d+%d\n",idx,src[2*idx],src[2*idx+1]);
     src[2*idx +1] = dest[idx];
-    printf(">>>src[%d] = %d\n",2*idx+1,src[2*idx +1]);
+    if(DEBUG)printf(">>>src[%d] = %d\n",2*idx+1,src[2*idx +1]);
 
 
 }
@@ -241,11 +252,28 @@ void* MyCudaPrefixUpPassKernel(void* args){
         pthread_exit(NULL);
     }
 
-    dest[2*(idx+1)] += src[idx];
-    printf(">>>dest[%d] = %d+%d\n",2*(idx+1),dest[2*(idx+1)],src[idx]);
-    dest[2*(idx+1)+1] += src[idx];
-    printf(">>>dest[%d] = %d+%d\n",2*(idx+1)+1,dest[2*(idx+1)+1],src[idx]);
+    if(2*(idx+1) < size*2){
+        if(DEBUG)printf(">>>dest[%d] = %d+%d\n",2*(idx+1),dest[2*(idx+1)],src[idx]);
+        dest[2*(idx+1)] += src[idx];
+    }
+    if(2*(idx+1)+1 < size*2){
+        if(DEBUG)printf(">>>dest[%d] = %d+%d\n",2*(idx+1)+1,dest[2*(idx+1)+1],src[idx]);
+        dest[2*(idx+1)+1] += src[idx];
+    }
 
 
 }
 
+void MyCudaPrefixSumTest(MyCudaItem* cuda_item,int max_n){
+
+    printf("GENERATING RANDOM BUFFER\n");
+    int size = cuda_item->buffer_size;
+    int test_buffer[size];
+    int number;
+    for(int i = 0;i<size;i++){
+        number = rand()%max_n;
+        test_buffer[i] = number;
+        cuda_item->src_buffer[i] = number;
+    }
+    BuffersPrint(&test_buffer,cuda_item->src_buffer);
+}
