@@ -47,6 +47,8 @@ void MyCudaPrefixSum(MyCudaItem* cuda_item);
 
 void* MyCudaPrefixDownPassKernel(void* args);
 
+void* MyCudaPrefixUpPassKernel(void* args);
+
 
 
 

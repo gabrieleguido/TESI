@@ -19,7 +19,7 @@ void MyCudaMalloc(MyCudaItem* cuda_item, int n){
     cuda_item->buffer_size = n;
 }
 void MyCudaMemSwap(MyCudaItem* cuda_item){
-    /*inverte dest e src di cuda item*/
+    /*inverte dest e src di cuda item, AZZERANDO dest*/
 
     assert(cuda_item && "CudaItem non valido");
     int* aux = cuda_item->src_buffer;
@@ -160,18 +160,49 @@ void MyCudaPrefixSum(MyCudaItem* cuda_item){
 
     MyCudaBuffersPrint(cuda_item);
 
-    int* odest = cuda_item->dest_buffer;
-    int* osrc = cuda_item->src_buffer;
+    int* orig_dets = cuda_item->dest_buffer;
+    int* orig_src = cuda_item->src_buffer;
 
-    while(cuda_item->size<cuda_item->buffer_size){
+    printf("DOWNPASS------\n");
+    while(cuda_item->size>0){
+        // printf("SIZE = %d\n",cuda_item->size);
         MyCudaKernelLaunch(cuda_item);
-        BuffersPrint(osrc,odest,cuda_item->buffer_size);
+        BuffersPrint(orig_src,orig_dets,cuda_item->buffer_size);
+        if(cuda_item->size == 1){
+            break;
+        }
         cuda_item->src_buffer = cuda_item->dest_buffer;
         cuda_item->dest_buffer += cuda_item->size; 
-        cuda_item->size += (cuda_item->size+1)/2;
+        cuda_item->size = (cuda_item->size+1)/2;
     }
-    cuda_item->src_buffer = osrc;
-    cuda_item->dest_buffer = odest;
+    // printf("dest'[0] = %d,src'[0] = %d\n",cuda_item->dest_buffer[0],cuda_item->src_buffer[0]);
+
+    //size = 1 perchè siamo appena usciti dal while
+    cuda_item->size = 2;
+
+    cuda_item->dest_buffer = cuda_item->src_buffer;
+
+    cuda_item->kernel_fn = MyCudaPrefixUpPassKernel;
+
+
+    printf("UPPASS------\n");
+
+    while(cuda_item->size*2 < cuda_item->buffer_size){
+        cuda_item->src_buffer = cuda_item->dest_buffer;
+        cuda_item->dest_buffer -= cuda_item->size*2;
+        printf("dest'[0] = %d,src'[0] = %d\n",cuda_item->dest_buffer[0],cuda_item->src_buffer[0]);
+        MyCudaKernelLaunch(cuda_item);
+        BuffersPrint(orig_src,orig_dets,cuda_item->buffer_size);
+        cuda_item->size *= 2;
+    }
+
+    cuda_item->dest_buffer = orig_src;
+    cuda_item->src_buffer = orig_dets;
+
+    //ultima chiamata per quando siamo tornati su 2 buffer diversi
+    MyCudaKernelLaunch(cuda_item);
+    BuffersPrint(orig_src,orig_dets,cuda_item->buffer_size);
+
     MyCudaBuffersPrint(cuda_item);
 }
 void* MyCudaPrefixDownPassKernel(void* args){
@@ -192,6 +223,28 @@ void* MyCudaPrefixDownPassKernel(void* args){
     printf(">>>dest[%d] = %d+%d\n",idx,src[2*idx],src[2*idx+1]);
     src[2*idx +1] = dest[idx];
     printf(">>>src[%d] = %d\n",2*idx+1,src[2*idx +1]);
+
+
+}
+
+void* MyCudaPrefixUpPassKernel(void* args){
+    ThreadArgs* info = (ThreadArgs*) args;
+
+    int idx = info->threadIdx+info->blockIdx*BLOCK_DIM;
+    int size = info->size;
+    int* src = info->src;
+    int* dest = info->dest;
+    
+    //printf("THREAD %d\n",idx);
+    
+    if(idx >= size){
+        pthread_exit(NULL);
+    }
+
+    dest[2*(idx+1)] += src[idx];
+    printf(">>>dest[%d] = %d+%d\n",2*(idx+1),dest[2*(idx+1)],src[idx]);
+    dest[2*(idx+1)+1] += src[idx];
+    printf(">>>dest[%d] = %d+%d\n",2*(idx+1)+1,dest[2*(idx+1)+1],src[idx]);
 
 
 }
