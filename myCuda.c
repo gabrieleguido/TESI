@@ -4,24 +4,26 @@
 #include <assert.h>
 #include <string.h>
 #include <pthread.h>
+#include <unistd.h>
+#include <time.h>
 
 void MyCudaMalloc(MyCudaItem* cuda_item, int n){
     /*alloca n blocchi int nei due buffer di cuda_item*/
 
-    assert(cuda_item && "CudaItem non valido");
+    assert(cuda_item && "CudaItem not valid");
     int* res;
     res = malloc(n*sizeof(int));
-    assert(res && "Errore allocazione memoria dest MyCuda");
+    assert(res && "Memory allocation error for  dest MyCuda");
     cuda_item->dest_buffer = res;
     res = malloc(n*sizeof(int));
-    assert(res && "Errore allocazione memoria src MyCuda");
+    assert(res && "Memory allocation error for  src MyCuda");
     cuda_item->src_buffer = res;
     cuda_item->buffer_size = n;
 }
 void MyCudaMemSwap(MyCudaItem* cuda_item){
     /*inverte dest e src di cuda item, AZZERANDO dest*/
 
-    assert(cuda_item && "CudaItem non valido");
+    assert(cuda_item && "CudaItem not valid");
     int* aux = cuda_item->src_buffer;
     cuda_item->src_buffer = cuda_item->dest_buffer;
     cuda_item->dest_buffer = aux;
@@ -35,7 +37,7 @@ void MyCudaMemSwap(MyCudaItem* cuda_item){
 void MyCudaMemFree(MyCudaItem* cuda_item){
     /*cancella cuda item e i suoi buffer*/
 
-    assert(cuda_item && "CudaItem non valido");
+    assert(cuda_item && "CudaItem not valid");
     free(cuda_item->dest_buffer);
     free(cuda_item->src_buffer);
     free(cuda_item);
@@ -43,7 +45,7 @@ void MyCudaMemFree(MyCudaItem* cuda_item){
 
 void MyCudaBuffersPrint(MyCudaItem* cuda_item){
 
-    assert(cuda_item && "CudaItem non valido");
+    assert(cuda_item && "CudaItem not valid");
 
     int size = cuda_item->buffer_size;
     int* src = cuda_item->src_buffer;
@@ -59,6 +61,7 @@ void MyCudaBuffersPrint(MyCudaItem* cuda_item){
     }
     printf("----------------------\n");
 }
+
 void BuffersPrint(int* src, int* dest, int size){
 
     printf("----------------------\n");
@@ -73,10 +76,17 @@ void BuffersPrint(int* src, int* dest, int size){
     printf("----------------------\n");
 }
 
+void BufferPrint(int* buff,int n, const char* name){
+    printf("\n****\n%s:\n",name);
+    for(int i = 0;i<n;i++){
+        printf("%s[%d] = %d\n",name,i,buff[i]);
+    }
+    printf("****\n\n");
+}
 
 int MyCudaIterations(MyCudaItem* item){
     /*calcola le iterazioni sul buffer per completarlo, arrotondando all'intero superiore*/
-    assert(item && "CudaItem non valido");
+    assert(item && "CudaItem not valid");
     return (item->buffer_size+BLOCK_DIM-1)/BLOCK_DIM;
 }
 
@@ -93,13 +103,13 @@ void* MyCudaReductionKernel(void* args){
     if(idx >= size){
         pthread_exit(NULL);
     }
-    // printf("dest[%d] = %d+%d\n",idx,src[2*idx],src[2*idx+1]);
+    if(DEBUG)printf("dest[%d] = %d+%d\n",idx,src[2*idx],src[2*idx+1]);
     dest[idx] = src[2*idx]+src[2*idx+1];
     pthread_exit(NULL);
 }
 
 void MyCudaReduction(MyCudaItem* cuda_item){
-    assert(cuda_item && "Cuda_item non valido");
+    assert(cuda_item && "cuda_item not valid");
  
     cuda_item->size = cuda_item->buffer_size;
     cuda_item->size = (cuda_item->size+1)/2;
@@ -119,7 +129,7 @@ void MyCudaReduction(MyCudaItem* cuda_item){
 
 void MyCudaSetThreadArgs(ThreadArgs* targs,int threadIdx, int blockIdx, int* dest, int* src, int size){
     /*prepara gli argomenti per il kernel launch*/
-    assert(targs && "ThreadArgs non valida");
+    assert(targs && "ThreadArgs not valid");
     targs->threadIdx = threadIdx;
     targs->blockIdx = blockIdx;
     targs->dest = dest;
@@ -128,7 +138,7 @@ void MyCudaSetThreadArgs(ThreadArgs* targs,int threadIdx, int blockIdx, int* des
 }
 
 void MyCudaKernelLaunch(MyCudaItem* cuda_item){
-    assert(cuda_item && "Cuda_item non valido");
+    assert(cuda_item && "cuda_item not valid");
 
     int passes = MyCudaIterations(cuda_item);
     // printf("PASSI: %d\n",passes);
@@ -162,8 +172,8 @@ int MyCudaIsPowerTwo(int n){
 }
 
 void MyCudaPrefixSum(MyCudaItem* cuda_item){
-    assert(cuda_item && "Cuda_item non valido");
-    assert(MyCudaIsPowerTwo(cuda_item->buffer_size) && "Size deve essere potenza di 2");
+    assert(cuda_item && "cuda_item not valid");
+    assert(MyCudaIsPowerTwo(cuda_item->buffer_size) && "Size must be a power of 2");
  
     cuda_item->size = cuda_item->buffer_size;
     cuda_item->size = (cuda_item->size+1)/2;
@@ -216,6 +226,7 @@ void MyCudaPrefixSum(MyCudaItem* cuda_item){
 
     if(DEBUG)MyCudaBuffersPrint(cuda_item);
 }
+
 void* MyCudaPrefixDownPassKernel(void* args){
     ThreadArgs* info = (ThreadArgs*) args;
 
@@ -266,14 +277,40 @@ void* MyCudaPrefixUpPassKernel(void* args){
 
 void MyCudaPrefixSumTest(MyCudaItem* cuda_item,int max_n){
 
-    printf("GENERATING RANDOM BUFFER\n");
     int size = cuda_item->buffer_size;
     int test_buffer[size];
     int number;
+
+    printf("GENERATING RANDOM BUFFER (range 0-%d) OF SIZE [%d]...\n",max_n,size);
+    sleep(SLEEPING_TIME);
+    
+    srand(time(NULL));
     for(int i = 0;i<size;i++){
         number = rand()%max_n;
         test_buffer[i] = number;
         cuda_item->src_buffer[i] = number;
     }
-    BuffersPrint(&test_buffer,cuda_item->src_buffer);
+    BufferPrint(test_buffer,size,"Test Buffer");
+    BufferPrint(cuda_item->src_buffer,size,"Source Buffer");
+
+    printf("SEQUENTIAL PREFIX SUM ON Test Buffer...\n");
+    sleep(SLEEPING_TIME);
+
+    int sum = 0;
+    for(int i = 0;i<size;i++){
+        test_buffer[i] += sum;
+        sum = test_buffer[i];
+    }
+    
+
+    printf("PARALLEL PREFIX SUM ON Source Buffer...\n");
+    sleep(SLEEPING_TIME);
+
+    MyCudaPrefixSum(cuda_item);
+
+    printf("RESULTS:\n");
+    for(int i = 0;i<size;i++){
+        printf("Correct[%d] = %d, MyResult[%d] = %d\n",i,test_buffer[i],i,cuda_item->dest_buffer[i]);
+    }
+
 }

@@ -1,5 +1,7 @@
 #define BLOCK_DIM 1024
 #define DEBUG 0
+#define SLEEPING_TIME 1
+#define RANDOM_RANGE 100
 
 typedef struct MyCudaItem MyCudaItem;
 typedef struct ThreadArgs ThreadArgs;
@@ -33,6 +35,8 @@ void MyCudaMemFree(MyCudaItem* cuda_item);
 void MyCudaBuffersPrint(MyCudaItem* cuda_item);
 
 void BuffersPrint(int* src, int* dest, int size);
+
+void BufferPrint(int* buff,int n, const char* name);
 
 void MyCudaReduction(MyCudaItem* cuda_item);
 
