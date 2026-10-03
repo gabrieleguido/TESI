@@ -9,8 +9,6 @@ typedef struct ThreadArgs ThreadArgs;
 typedef void*(*KernelLaunchFn)(void*);
 
 struct MyCudaItem{
-    // int n_threads;
-    // int n_blocks;
     int buffer_size;
     int size;
     int* src_buffer;

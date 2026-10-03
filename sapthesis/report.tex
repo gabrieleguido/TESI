@@ -6,6 +6,26 @@
 \usepackage[italian]{babel}
 \usepackage[utf8]{inputenc}
 \usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor} 
+\usepackage{titlesec}
+\titleformat{\chapter}[hang]
+  {\normalfont\huge\bfseries}
+  {}{0em}
+  {}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!50!black},
+    stringstyle=\color{red},
+    aboveskip=1.5em, 
+    belowskip=1.5em, 
+}
 
 \title{Emulatore CUDA}
 \author{Gabriele Guido}
@@ -24,27 +44,140 @@
 \maketitle
 
 \begin{abstract}
-La rapida espansione dell'Intelligenza Artificiale ha favorito la diffusione e l'uso delle GPU 
-\textit{(Graphics Processing Unit)} grazie alla loro capacità di operare in parallelo, rendendo le 
-operazioni su matrici decisamente più veloci. 
-La programmazione in CUDA \textit{(Compute Unified Device Architecture)} è il modo
-più efficace per scrivere programmi eseguibili su GPU. L'architettura
-delle schede grafiche rende la progettazione degli algoritmi meno semplice: i dati 
-sono elaborati in parallelo e senza ordine quindi durante l'esecuzione potrebbero esserci delle dipendenze 
-dati che, se non trattate correttamente, potrebbero portare a risultati sbagliati.
-\\\\
-Il progetto nasce dal bisogno di programmare in CUDA anche senza una scheda grafica sul proprio PC. 
-La libreria MyCuda contiente delle funzionalità 
-necessarie alla progettazione e simulazione del calcolo parallelo. L'esecuzione 
-effettiva è gestita tramite un numero limitato di thread che simulano i core di una GPU. A 
-livello prestazionale non c'è alcun vantaggio, la vera utilità consiste nella verifica 
-del funzionamento di algoritmi destinati al calcolo parallelo.\end{abstract}
+    La programmazione in CUDA \textit{(Compute Unified Device Architecture)} è il modo
+    più efficace per scrivere programmi eseguibili su GPU \textit{(Graphics Processing Unit)}. L'architettura
+    delle schede grafiche consente numerose operazioni parallele, riducendo i tempi di esecuzione e aumentando
+    il \textbf{throughput} (attività completate nell'unità di tempo). Negli ultimi anni l'utilizzo
+    di questa tecnologia si è diffuso ulteriormante
+     grazie alla velocità di esecuzione di calcoli sulle matrici e programmare in questa 
+    modalità è diventata quindi una competenza richiesta. Il suo 
+    punto di forza tuttavia è ciò che rende la progettazione degli algoritmi meno semplice: i dati 
+    sono elaborati in parallelo e senza ordine perciò durante l'esecuzione potrebbero verificarsi delle dipendenze 
+    dati che, se non trattate correttamente, porterebbro a risultati sbagliati. In CUDA 
+    abbandoniamo il concetto di esecuzione sequenziale: in ogni istante un numero finito di thread 
+    esegue lo stesso codice su una porzione dell'input dato al programma.Senza un ordine tra questi 
+    diventa necessario disegnare algoritmi in cui i thread lavorino in modo indipendente tra loro.  
+    \\\\
+    Il progetto nasce dal bisogno di programmare in CUDA anche senza una scheda grafica sul proprio PC e
+    consiste in una librearia in cui ci sono le funzionalità essenziali per testare la correttezza di 
+        un algoritmo destinato al calcolo parallelo su GPU. A livello 
+        prestazionale non c'è alcun vantaggio, la vera utilità sta nella scrittura e verifica 
+    del funzionamento di algoritmi destinati al calcolo parallelo.
+    
+\end{abstract}
 
 \tableofcontents
 
 \mainmatter
-\chapter{Introduzione}
-Scrivi qui il primo capitolo della tesi...
+\chapter{CUDA}
+Per capire come funziona l'esecuzione di un programma su una GPU dobbiamo abbandonare la 
+concezione sequenziale e iniziare a pensare a cosa succede nello spazio più che nel tempo. Prenderemo 
+come esempio di input da processare dei buffer di N numeri (interi). Supponiamo di voler eseguire 
+una moltiplicazione per uno scalare S in ogni cella di \textit{dest[N]} e salvare 
+il risultato su \textit{src[N]}. Su una CPU non serve altro
+che iterare l'operazione su tutte le N posizioni del nostro vettore.
+\begin{lstlisting}[language=C]
+    for(int i = 0; i < N; i++)
+        dest[i] += S * src[i];
+\end{lstlisting}
+
+Volendo ottenere lo stesso risultato su una GPU, iterare in questo modo non avrebbe senso: per sfruttare
+la potenza di calcolo dobbiamo ottimizzare l'esecuzione. In questo esempio dobbiamo pensare che le 
+operazioni di moltiplicazione stavolta vengono fatte su tutte le celle contemporaneamente: ogni thread 
+esegue lo stesso codice su una singola posizione dell'array.
+\begin{lstlisting}[language=C]
+        dest[idx] += S * src[idx];
+\end{lstlisting}
+In questo modo il costo di questa semplice operazione passa da essere lineare \textit{(O(n))} a costante 
+\textit{(O(1))}. 
+\paragraph{Griglia, Blocchi e Thread}
+Per poter gestire input con dimensione maggiore dei core (e quindi thread) che abbiamo a disposizione,
+l'esecuzione viene spezzata in blocchi: ogni blocco è grande quanto il numero massimo di thread a disposizione.
+L'input viene processato come una griglia di blocchi quindi CUDA mette a disposizione dei programmatori 
+le informazioni come numero di thread (in un blocco), numero di blocco (nella griglia) e dimensione 
+del blocco. In questo modo possiamo tenere conto dello spostamento spaziale della nostra esecuzione, processando
+il nostro input come se fosse composto da tante "mattonelle" (da non confondere con le celle di un array).
+
+
+\chapter{MyCuda}
+La libreria MyCuda contiente delle funzionalità 
+utili alla progettazione e simulazione del calcolo parallelo. L'esecuzione 
+effettiva è gestita tramite un numero limitato di thread che simulano i core di una GPU.
+Il funzionamento generale è gestito tramite una struttura dati \textit{MyCudaItem} al cui 
+interno troviamo i buffer di memeoria (con rispettiva dimensione) e il puntatore alla funzione 
+scritta in \textit{"pseudo-CUDA"} che verrà eseguta simulando i core
+della GPU. Nella libreria la maggior parte delle funzioni sono 
+delle operazioni ausiliare che facilitano la fase di sviluppo e verifica: gestione dei 2 buffer (creazione,
+ stampa ed eliminazione), il calcolo di valori speciali 
+ (dimensione griglia) e verifica di condizioni necessarie (dimensione buffer). 
+Il cuore della libreria consiste nella funzione che simula la chiamata al \textit{Kernel} della GPU 
+e tutta la gestione, tramite strutture dati 
+dedicate, di indici, parametri e argomenti usati dai thread. 
+Al di là quindi delle varie funzionalità operative, l'essenza di questa
+libreria è la possibilità di scrivere funzioni (in C) similmente a come si farebbe usando CUDA. 
+\\\\    
+\textbf{Nota:} L'intera libreria è stata pensata per trattare array di interi ma 
+la meccanica può essere facilmente estesa ad altri tipi di dato.    
+
+\section{Parametri}
+Nel header \textit{myCuda.h} troviamo le \textbf{macro} usate nella libreria. L'unica veramente rilevante è 
+\texttt{BLOCK\_DIM}, che indica la dimensione di ogni blocco e quindi il numero massimo di thread generati.
+Le altre sono destinate a debugging e test.    
+\section{Strumenti principali}
+\subparagraph{MyCudaItem}
+Ho scelto di usare una struttura dati per salvare gli elementi più ricorrenti e
+rendere tutte le funzioni consistenti con questo tipo di dato. Le funzioni di 
+libreria avranno sempre, come parametro, un puntatore a un oggetto di questo tipo, lanciando un errore
+in caso non sia rispettata questa sintassi.  
+\begin{lstlisting}[language=C]
+struct MyCudaItem{
+    int buffer_size;
+    int size;
+    int* src_buffer;
+    int* dest_buffer;
+    KernelLaunchFn kernel_fn;
+};
+\end{lstlisting}
+
+\subparagraph{MyCudaKernelLaunch}
+In questa funzione vengono creati i thread che andranno a eseguire la funzione puntata dal campo di un oggetto
+MyCudaItem. Per rispettare la struttura a griglia dell'esecuzione, i thread sono generati ad ogni iterazione 
+di un singolo blocco, passandogli come funzione da eseguire proprio la funzione \textit{kernel\_fn}. Per gestire 
+il passaggio dei parametri a ogni thread ho creato una struttura dati apposita,
+\begin{lstlisting}[language=C]
+struct ThreadArgs{
+    int threadIdx;
+    int blockIdx;
+    void* dest;
+    void* src;
+    int size;
+};  
+\end{lstlisting}
+inizializzata con \textbf{MyCudaSetThreadArgs()}. In questo modo ogni thread potrà accedere alla sua 
+posizione e ai buffer. Con \textbf{MyCudaIterations()} vengono calcolati i passaggi totali per consumare 
+l'input, ovvero il numero di blocchi totali.  
+
+
+\begin{lstlisting}[language=C]
+void MyCudaKernelLaunch(MyCudaItem* cuda_item){
+    assert(cuda_item && "cuda_item not valid");
+    int passes = MyCudaIterations(cuda_item);
+    pthread_t threads[BLOCK_DIM];
+    ThreadArgs thread_arguments[BLOCK_DIM];
+    for(int bid = 0; bid<passes;bid++){
+            for(int tid = 0; tid < BLOCK_DIM; tid++){
+                MyCudaSetThreadArgs(&thread_arguments[tid],tid,bid,cuda_item->dest_buffer,cuda_item->src_buffer,cuda_item->size);
+                //kernel launch:
+                pthread_create(&threads[tid],NULL,cuda_item->kernel_fn,&thread_arguments[tid]);
+            }
+            for(int tid = 0; tid < BLOCK_DIM; tid++){
+                pthread_join(threads[tid],NULL);
+            } 
+        }
+}
+\end{lstlisting}
+
+
 
 \backmatter
 % Qui inserisci la bibliografia

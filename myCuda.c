@@ -20,6 +20,7 @@ void MyCudaMalloc(MyCudaItem* cuda_item, int n){
     cuda_item->src_buffer = res;
     cuda_item->buffer_size = n;
 }
+
 void MyCudaMemSwap(MyCudaItem* cuda_item){
     /*inverte dest e src di cuda item, AZZERANDO dest*/
 
@@ -32,7 +33,6 @@ void MyCudaMemSwap(MyCudaItem* cuda_item){
     }
     // printf("SWAP\n");
 }
-
 
 void MyCudaMemFree(MyCudaItem* cuda_item){
     /*cancella cuda item e i suoi buffer*/
