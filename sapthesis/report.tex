@@ -1,15 +1,29 @@
-\documentclass[12pt]{article}
-\usepackage[utf8]{inputenc}
+%!TeX encoding = UTF-8
+%!TeX program = pdflatex
+%!TeX spellcheck = it_IT
+
+\documentclass[binding=0.6cm, noexaminfo]{sapthesis}\usepackage{microtype}
 \usepackage[italian]{babel}
-\author{Gabriele Guido}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+
 \title{Emulatore CUDA}
+\author{Gabriele Guido}
+\IDnumber{2144286}
+\course{Laurea Triennale in Ingegneria Informatica}
+\courseorganizer{Facoltà di Ingegneria dell'Informazione, Informatica e Statistica}
+\AcademicYear{2023/2024}
+\advisor{Prof. Giorgio Grisetti}
+\authoremail{guido.2144286@studenti.uniroma1.it}
+\copyyear{2026}
+\thesistype{Tesi di Laurea}
 
 \begin{document}
+
+\frontmatter
 \maketitle
-\clearpage
-\begin{center}
-    \section*{Itroduzione}
-\end{center}
+
+\begin{abstract}
 La rapida espansione dell'Intelligenza Artificiale ha favorito la diffusione e l'uso delle GPU 
 \textit{(Graphics Processing Unit)} grazie alla loro capacità di operare in parallelo, rendendo le 
 operazioni su matrici decisamente più veloci. 
@@ -24,6 +38,15 @@ La libreria MyCuda contiente delle funzionalità
 necessarie alla progettazione e simulazione del calcolo parallelo. L'esecuzione 
 effettiva è gestita tramite un numero limitato di thread che simulano i core di una GPU. A 
 livello prestazionale non c'è alcun vantaggio, la vera utilità consiste nella verifica 
-del funzionamento di algoritmi destinati al calcolo parallelo.
-    
+del funzionamento di algoritmi destinati al calcolo parallelo.\end{abstract}
+
+\tableofcontents
+
+\mainmatter
+\chapter{Introduzione}
+Scrivi qui il primo capitolo della tesi...
+
+\backmatter
+% Qui inserisci la bibliografia
+
 \end{document}
