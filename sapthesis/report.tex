@@ -23,8 +23,8 @@
     keywordstyle=\color{blue},
     commentstyle=\color{green!50!black},
     stringstyle=\color{red},
-    aboveskip=1.5em, 
-    belowskip=1.5em, 
+    aboveskip=3em, 
+    belowskip=3em, 
 }
 
 \title{Emulatore CUDA}
@@ -153,8 +153,8 @@ struct ThreadArgs{
     int size;
 };  
 \end{lstlisting}
-inizializzata con \textbf{MyCudaSetThreadArgs()}. In questo modo ogni thread potrà accedere alla sua 
-posizione e ai buffer. Con \textbf{MyCudaIterations()} vengono calcolati i passaggi totali per consumare 
+inizializzata con \texttt{MyCudaSetThreadArgs()}. In questo modo ogni thread potrà accedere alla sua 
+posizione e ai buffer. Con \texttt{MyCudaIterations()} vengono calcolati i passaggi totali per consumare 
 l'input, ovvero il numero di blocchi totali.  
 
 
@@ -176,6 +176,50 @@ void MyCudaKernelLaunch(MyCudaItem* cuda_item){
         }
 }
 \end{lstlisting}
+Una volta entrati nella funzione, i parametri vengono estratti dalla \texttt{struct} e salvati localmente.
+Per vedere il loro utilizzo prendiamo l'esempio di \texttt{ReductionSum}, in cui sommiamo tutti i valori 
+di un vettore. Nella sua versione \texttt{Kernel} troviamo
+\begin{lstlisting}[language=C]
+void* MyCudaReductionKernel(void* args){
+    ThreadArgs* info = (ThreadArgs*) args;
+
+    //estraggo i parametri 
+    int idx = info->threadIdx+info->blockIdx*BLOCK_DIM;
+    int size = info->size;
+    int* src = info->src;
+    int* dest = info->dest;
+
+    //verifico se sono ancora nel buffer
+    if(idx >= size){
+        pthread_exit(NULL);
+    }
+
+    //sommo due celle vicine 
+    dest[idx] = src[2*idx]+src[2*idx+1];
+    pthread_exit(NULL);
+}
+\end{lstlisting}
+
+\subparagraph{MyCudaMemSwap}
+In molti algoritmi, prima di arrivare al risultato, ci sono diversi passaggi intermedi in cui si salvano 
+risultati da usare successivamente. Per evitare di consumare molto spazio usiamo i due array di sorgente e 
+destinazione in modo alternato. Questa funzione non fa altro che invertire, all'interno della struttura 
+MyCudaItem, i puntatori alle due zone di memoria. Ad esempio nel caso di \texttt{ReductionSum} gli array 
+vengono alternati finchè la dimensione finale è 1 (la somma totale). 
+
+\begin{lstlisting}[language=C]
+
+void MyCudaMemSwap(MyCudaItem* cuda_item){
+    assert(cuda_item && "CudaItem not valid");
+    int* aux = cuda_item->src_buffer;
+    cuda_item->src_buffer = cuda_item->dest_buffer;
+    cuda_item->dest_buffer = aux;
+    for(int i = 0; i<cuda_item->buffer_size;i++){
+        cuda_item->dest_buffer[i] = 0; 
+    }
+}
+\end{lstlisting}
+
 
 
 

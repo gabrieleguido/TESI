@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.9.29)  3 OCT 2026 19:04
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.9.29)  3 OCT 2026 20:14
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -664,7 +664,9 @@ Underfull \hbox (badness 10000) in paragraph at lines 103--121
 
  []
 
-[3] [4] (./report.aux)
+[3] [4] [5] [6
+
+] (./report.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
@@ -673,18 +675,18 @@ Package rerunfilecheck Info: File `report.out' has not changed.
 (rerunfilecheck)             Checksum: B36064BEB0CD3BCB0D4F2CFAFA51975A;392.
  ) 
 Here is how much of TeX's memory you used:
- 17755 strings out of 476098
- 280623 string characters out of 5793537
- 2063975 words of memory out of 5000000
- 39337 multiletter control sequences out of 15000+600000
- 630503 words of font info for 141 fonts, out of 8000000 for 9000
+ 17805 strings out of 476098
+ 281305 string characters out of 5793537
+ 2084975 words of memory out of 5000000
+ 39349 multiletter control sequences out of 15000+600000
+ 630752 words of font info for 144 fonts, out of 8000000 for 9000
  59 hyphenation exceptions out of 8191
- 84i,12n,131p,1038b,1353s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,13n,131p,1038b,1353s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf/fonts/type1/public/lm/lmbx10.pfb></usr/share/texmf/fonts/type1/public/lm/lmbx12.pfb></usr/share/texmf/fonts/type1/public/lm/lmr10.pfb></usr/share/texmf/fonts/type1/public/lm/lmr6.pfb></usr/share/texmf/fonts/type1/public/lm/lmr7.pfb></usr/share/texmf/fonts/type1/public/lm/lmri10.pfb></usr/share/texmf/fonts/type1/public/lm/lmss10.pfb></usr/share/texmf/fonts/type1/public/lm/lmss17.pfb></usr/share/texmf/fonts/type1/public/lm/lmssbx10.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt10.pfb>
-Output written on report.pdf (10 pages, 267919 bytes).
+Output written on report.pdf (12 pages, 272872 bytes).
 PDF statistics:
- 184 PDF objects out of 1000 (max. 8388607)
- 147 compressed objects within 2 object streams
- 54 named destinations out of 1000 (max. 500000)
+ 229 PDF objects out of 1000 (max. 8388607)
+ 190 compressed objects within 2 object streams
+ 86 named destinations out of 1000 (max. 500000)
  44070 words of extra memory for PDF output out of 51595 (max. 10000000)
 

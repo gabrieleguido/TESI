@@ -1,7 +1,7 @@
-#define BLOCK_DIM 1024
+#define BLOCK_DIM 8
 #define DEBUG 0
 #define SLEEPING_TIME 1
-#define RANDOM_RANGE 100
+#define RANDOM_RANGE 10
 
 typedef struct MyCudaItem MyCudaItem;
 typedef struct ThreadArgs ThreadArgs;
