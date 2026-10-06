@@ -70,6 +70,7 @@
 
 \mainmatter
 \chapter{CUDA}
+\section{In poche parole}
 Per capire come funziona l'esecuzione di un programma su una GPU dobbiamo abbandonare la 
 concezione sequenziale e iniziare a pensare a cosa succede nello spazio più che nel tempo. Prenderemo 
 come esempio di input da processare dei buffer di N numeri (interi). Supponiamo di voler eseguire 
@@ -90,13 +91,45 @@ esegue lo stesso codice su una singola posizione dell'array.
 \end{lstlisting}
 In questo modo il costo di questa semplice operazione passa da essere lineare \textit{(O(n))} a costante 
 \textit{(O(1))}. 
-\paragraph{Griglia, Blocchi e Thread}
+\section{Griglia, Blocchi e Thread}
 Per poter gestire input con dimensione maggiore dei core (e quindi thread) che abbiamo a disposizione,
 l'esecuzione viene spezzata in blocchi: ogni blocco è grande quanto il numero massimo di thread a disposizione.
 L'input viene processato come una griglia di blocchi quindi CUDA mette a disposizione dei programmatori 
 le informazioni come numero di thread (in un blocco), numero di blocco (nella griglia) e dimensione 
 del blocco. In questo modo possiamo tenere conto dello spostamento spaziale della nostra esecuzione, processando
 il nostro input come se fosse composto da tante "mattonelle" (da non confondere con le celle di un array).
+
+
+\chapter{Algoritmi}
+Nella libreria sono presenti già due algoritmi usati per testare il funzionamento delle funzioni.
+Vediamo in generale cosa sono e a che servono. L'implementazione nella libreria si trova al capitolo di MyCuda, 
+qui mostrero una equivalente (sempre in C) sequenziale per capirne il meccanismo.
+
+\section{ReductionSum}
+Prende in input un vettore (numerico) e restituisce la somma di tutte le componenti.  
+\begin{lstlisting}[language=C]
+    int SequentialReductionSum(int* src, int size){
+        int sum = 0;
+        for(int i = 0; i<size,i++){
+            sum += src[i];
+        }
+        return sum; 
+    }
+\end{lstlisting}
+
+\section{PrefixSum}
+Prende in input un vettore (numerico) e scrive in ogni cella \texttt{i-\textit{esima}} la somma dei valori nelle 
+posizioni da 0 a i del vettore.  
+\begin{lstlisting}[language=C]
+    void SequentialPrefixSum(int* src, int size){
+        int sum = 0;
+        for(int i = 0; i<size; i++){
+            sum += src[i];
+            scr[i] = sum; 
+        }
+    }
+\end{lstlisting}
+
 
 
 \chapter{MyCuda}
@@ -120,11 +153,19 @@ libreria è la possibilità di scrivere funzioni (in C) similmente a come si far
 la meccanica può essere facilmente estesa ad altri tipi di dato.    
 
 \section{Parametri}
-Nel header \textit{myCuda.h} troviamo le \textbf{macro} usate nella libreria. L'unica veramente rilevante è 
-\texttt{BLOCK\_DIM}, che indica la dimensione di ogni blocco e quindi il numero massimo di thread generati.
-Le altre sono destinate a debugging e test.    
-\section{Strumenti principali}
-\subparagraph{MyCudaItem}
+Nell'header \textit{myCuda.h} troviamo le \textbf{macro} usate nella libreria. 
+\begin{itemize}
+    \item \texttt{BLOCK\_DIM}: dimensione di ogni blocco e quindi il 
+    numero massimo di thread generati;
+    \item \texttt{DEBUG}: quando è maggiore di 0 attiva le stampe intermedie nelle funzioni, rendendo più facile l'ispezione;
+    \item  \texttt{SLEEPING\_TIME}: nei test ho rallentato le stampe con delle \texttt{sleep()} per rendere più 
+    leggibile il terminale;
+    \item \texttt{RANDOM\_RANGE}: indica fino a che numero possono arrivare i numeri pseudocasuali generati come input 
+    per i test.
+\end{itemize} 
+
+\section{Strumenti Principali}
+\subsection{MyCudaItem}
 Ho scelto di usare una struttura dati per salvare gli elementi più ricorrenti e
 rendere tutte le funzioni consistenti con questo tipo di dato. Le funzioni di 
 libreria avranno sempre, come parametro, un puntatore a un oggetto di questo tipo, lanciando un errore
@@ -139,7 +180,7 @@ struct MyCudaItem{
 };
 \end{lstlisting}
 
-\subparagraph{MyCudaKernelLaunch}
+\subsection{MyCudaKernelLaunch}
 In questa funzione vengono creati i thread che andranno a eseguire la funzione puntata dal campo di un oggetto
 MyCudaItem. Per rispettare la struttura a griglia dell'esecuzione, i thread sono generati ad ogni iterazione 
 di un singolo blocco, passandogli come funzione da eseguire proprio la funzione \textit{kernel\_fn}. Per gestire 
@@ -176,36 +217,19 @@ void MyCudaKernelLaunch(MyCudaItem* cuda_item){
         }
 }
 \end{lstlisting}
-Una volta entrati nella funzione, i parametri vengono estratti dalla \texttt{struct} e salvati localmente.
-Per vedere il loro utilizzo prendiamo l'esempio di \texttt{ReductionSum}, in cui sommiamo tutti i valori 
-di un vettore. Nella sua versione \texttt{Kernel} troviamo
-\begin{lstlisting}[language=C]
-void* MyCudaReductionKernel(void* args){
-    ThreadArgs* info = (ThreadArgs*) args;
+Una volta entrati nella funzione, i parametri vengono estratti dalla \texttt{struct} e salvati localmente
+(vedere MyCudaReductionKernel).
 
-    //estraggo i parametri 
-    int idx = info->threadIdx+info->blockIdx*BLOCK_DIM;
-    int size = info->size;
-    int* src = info->src;
-    int* dest = info->dest;
-
-    //verifico se sono ancora nel buffer
-    if(idx >= size){
-        pthread_exit(NULL);
-    }
-
-    //sommo due celle vicine 
-    dest[idx] = src[2*idx]+src[2*idx+1];
-    pthread_exit(NULL);
-}
-\end{lstlisting}
-
-\subparagraph{MyCudaMemSwap}
+\subsection{MyCudaMemSwap}
 In molti algoritmi, prima di arrivare al risultato, ci sono diversi passaggi intermedi in cui si salvano 
 risultati da usare successivamente. Per evitare di consumare molto spazio usiamo i due array di sorgente e 
 destinazione in modo alternato. Questa funzione non fa altro che invertire, all'interno della struttura 
-MyCudaItem, i puntatori alle due zone di memoria. Ad esempio nel caso di \texttt{ReductionSum} gli array 
-vengono alternati finchè la dimensione finale è 1 (la somma totale). 
+MyCudaItem, i puntatori alle due zone di memoria. Ad esempio nel caso di \texttt{ReductionSum} si parte da 
+\texttt{src} con dimensione \textbf{n}, si calcolano le somme a coppie e si salvano gli \textbf{n/2}
+ risultati in \texttt{dest},
+al passaggio successivo il nuovo buffer sorgente è quello in cui abbiamo appena salvato le somme, quindi
+invertiamo i due array e ripetiamo finchè dopo \textit{Log(n)} passaggi troviamo un solo elemento che 
+rappresenta il risultato.
 
 \begin{lstlisting}[language=C]
 
@@ -220,7 +244,128 @@ void MyCudaMemSwap(MyCudaItem* cuda_item){
 }
 \end{lstlisting}
 
+\section{Algoritmi}
+Entrambi gli algoritmi modificano direttamente i buffer in input, simulando ciò che avviene in GPU. 
+\subsection{MyCudaReduction}
 
+\paragraph{MyCudaReduction}
+Questa funzione serve da "guscio" per l'esecuzione effettiva: crea i parametri,
+gestisce le iterazioni e invoca la (finta) chiamata al kernel. Dopo un primo passaggio il buffer di destinazione 
+sarà grande metà dell'input e conterrà le somme a coppie degli elementi in \texttt{src}:
+ a questo punto viene invocata \texttt{MyCudaMemSwap()} che inverte \texttt{dest}
+e \texttt{src} per il passaggio successivo, e così si itera finchè la dimensione del risultato è pari a 1,
+ovvero la somma totale degli elementi iniziali. 
+
+\begin{lstlisting}[language=C]
+void MyCudaReduction(MyCudaItem* cuda_item){
+    assert(cuda_item && "cuda_item not valid");
+ 
+    cuda_item->size = cuda_item->buffer_size;
+    cuda_item->size = (cuda_item->size+1)/2;
+    cuda_item->kernel_fn = MyCudaReductionKernel;
+
+    while(1){
+        //kernel launch 
+        MyCudaKernelLaunch(cuda_item);
+        if(cuda_item->size>1){
+            cuda_item->size = (cuda_item->size+1)/2;
+            MyCudaMemSwap(cuda_item);
+        }else{
+            break;
+        }
+    }
+}
+\end{lstlisting}
+
+\paragraph{MyCudaReductionKernel}
+L'esecuzione effettiva su GPU (o meglio la sua simulazione). Una volta estratti i parametri e verificato il 
+giusto posizionamento entro i limiti del buffer si sommano due celle contigue di \texttt{src} e viene scritto
+il risultato della corrispondente posizione in \texttt{dest}. 
+
+\textbf{Nota:} ogni thread ha 2 celle dedicate e nessun altro interagisce con queste, preservando 
+la correttezza del codice. 
+
+\begin{lstlisting}[language=C]
+void* MyCudaReductionKernel(void* args){
+    ThreadArgs* info = (ThreadArgs*) args;
+    //estrazione parametri 
+    int idx = info->threadIdx+info->blockIdx*BLOCK_DIM;
+    int size = info->size;
+    int* src = info->src;
+    int* dest = info->dest;
+
+    if(idx >= size){
+        pthread_exit(NULL);
+    }
+    dest[idx] = src[2*idx]+src[2*idx+1];
+    pthread_exit(NULL);
+}
+\end{lstlisting}
+
+\subsection{MyCudaPrefixSum}
+
+\paragraph{MyCudaPrefixSum}
+Anche stavolta ci serve una funzione di gestione che dall'esterno di occupa di parametri, esecuzioni e 
+chiamate al kernel. Questo algoritmo si divide in due passaggi: 
+\begin{itemize}
+    \item DownPass: scriviamo in \texttt{dest} le somme a coppie dell'input e il risultato
+     viene poi sostituito nella rispettiva posizione pari di \texttt{src}. 
+    \item UpPass: sommiamo ogni valore di \texttt{src} nelle due celle rispettive di \texttt{dest}, saltando 
+    le prime 2 posizioni.   
+\end{itemize}
+\textbf{DownPass} viene eseguito finchè la dimensione di \texttt{dest} è pari a 1. A quel punto invertiamo 
+i due buffer e risaliamo invocando \textbf{UpPass} a ogni passaggio, finchè torniamo alla dimensione iniziale 
+dell'input. Nella funzione gestisco le due chiamate nei momenti diversi semplcemente impostando 
+il campo \texttt{kernel\_fn} di MyCudaItem, sarà compito di \textbf{MyCudaKernelLaunch()} invocare la funzione 
+puntata da quel campo. 
+
+\textbf{Nota:} Per evitare spreco di spazio, assumo negli algoritmi di avere dei buffer con dimensione 
+potenza di due (verifica effettuata con funzione ausiliaria \textbf{MyCudaIsPowerTwo()}). In questo 
+modo posso usare dividere il \texttt{dest} con dei sottobufffer contigui la cui dimensione si dimezza a 
+ogni passaggio: con questo meccanismo posso evitare di allocare ulteriore memoria per i passaggi intermedi. 
+
+\begin{lstlisting}[language=C]
+void MyCudaPrefixSum(MyCudaItem* cuda_item){
+    assert(cuda_item && "cuda_item not valid");
+    assert(MyCudaIsPowerTwo(cuda_item->buffer_size) && "Size must be a power of 2");
+ 
+    cuda_item->size = cuda_item->buffer_size;
+    cuda_item->size = (cuda_item->size+1)/2;
+    cuda_item->kernel_fn = MyCudaPrefixDownPassKernel;
+
+    int* orig_dets = cuda_item->dest_buffer;
+    int* orig_src = cuda_item->src_buffer;
+
+    while(cuda_item->size>0){
+        MyCudaKernelLaunch(cuda_item);
+        if(cuda_item->size == 1){
+            break;
+        }
+        cuda_item->src_buffer = cuda_item->dest_buffer;
+        cuda_item->dest_buffer += cuda_item->size; 
+        cuda_item->size = (cuda_item->size+1)/2;
+    }
+    cuda_item->size = 2;
+
+    cuda_item->dest_buffer = cuda_item->src_buffer;
+
+    cuda_item->kernel_fn = MyCudaPrefixUpPassKernel;
+
+    while(cuda_item->size*2 < cuda_item->buffer_size){
+        cuda_item->src_buffer = cuda_item->dest_buffer;
+        cuda_item->dest_buffer -= cuda_item->size*2;
+        MyCudaKernelLaunch(cuda_item);
+        cuda_item->size *= 2;
+    }
+
+    cuda_item->dest_buffer = orig_src;
+    cuda_item->src_buffer = orig_dets;
+
+    //ultima chiamata per quando siamo tornati su 2 buffer diversi
+    MyCudaKernelLaunch(cuda_item);
+
+}
+\end{lstlisting}
 
 
 \backmatter
