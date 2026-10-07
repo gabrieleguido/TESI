@@ -2,7 +2,7 @@
 \babel@toc {italian}{}\relax 
 \contentsline {chapter}{\numberline {1}CUDA}{1}{chapter.1}%
 \contentsline {section}{\numberline {1.1}In poche parole}{1}{section.1.1}%
-\contentsline {section}{\numberline {1.2}Griglia, Blocchi e Thread}{1}{section.1.2}%
+\contentsline {section}{\numberline {1.2}Griglia, Blocchi e Thread}{2}{section.1.2}%
 \contentsline {chapter}{\numberline {2}Algoritmi}{3}{chapter.2}%
 \contentsline {section}{\numberline {2.1}ReductionSum}{3}{section.2.1}%
 \contentsline {section}{\numberline {2.2}PrefixSum}{3}{section.2.2}%
@@ -10,11 +10,21 @@
 \contentsline {section}{\numberline {3.1}Parametri}{5}{section.3.1}%
 \contentsline {section}{\numberline {3.2}Strumenti Principali}{5}{section.3.2}%
 \contentsline {subsection}{\numberline {3.2.1}MyCudaItem}{5}{subsection.3.2.1}%
-\contentsline {subsection}{\numberline {3.2.2}MyCudaKernelLaunch}{6}{subsection.3.2.2}%
-\contentsline {subsection}{\numberline {3.2.3}MyCudaMemSwap}{7}{subsection.3.2.3}%
+\contentsline {subsection}{\numberline {3.2.2}MyCudaKernelLaunch()}{6}{subsection.3.2.2}%
 \contentsline {section}{\numberline {3.3}Algoritmi}{7}{section.3.3}%
-\contentsline {subsection}{\numberline {3.3.1}MyCudaReduction}{8}{subsection.3.3.1}%
-\contentsline {paragraph}{MyCudaReduction}{8}{subsection.3.3.1}%
-\contentsline {paragraph}{MyCudaReductionKernel}{8}{lstnumber.-9.18}%
+\contentsline {subsection}{\numberline {3.3.1}MyCudaReduction}{7}{subsection.3.3.1}%
+\contentsline {paragraph}{MyCudaReduction()}{7}{subsection.3.3.1}%
+\contentsline {paragraph}{MyCudaReductionKernel()}{8}{lstnumber.-8.18}%
 \contentsline {subsection}{\numberline {3.3.2}MyCudaPrefixSum}{9}{subsection.3.3.2}%
-\contentsline {paragraph}{MyCudaPrefixSum}{9}{subsection.3.3.2}%
+\contentsline {paragraph}{MyCudaPrefixSum()}{9}{subsection.3.3.2}%
+\contentsline {paragraph}{MyCudaPrefixDownPassKernel()}{10}{lstnumber.-10.40}%
+\contentsline {paragraph}{MyCudaPrefixUpPassKernel()}{11}{lstnumber.-11.16}%
+\contentsline {section}{\numberline {3.4}Funzioni Ausiliare}{11}{section.3.4}%
+\contentsline {subsection}{\numberline {3.4.1}MyCudaMalloc()}{11}{subsection.3.4.1}%
+\contentsline {subsection}{\numberline {3.4.2}MyCudaMemSwap()}{12}{subsection.3.4.2}%
+\contentsline {subsection}{\numberline {3.4.3}MyCudaMemFree()}{12}{subsection.3.4.3}%
+\contentsline {subsection}{\numberline {3.4.4}MyCudaBuffersPrint()}{12}{subsection.3.4.4}%
+\contentsline {subsection}{\numberline {3.4.5}MyCudaIterations()}{13}{subsection.3.4.5}%
+\contentsline {subsection}{\numberline {3.4.6}MyCudaSetThreadArgs()}{13}{subsection.3.4.6}%
+\contentsline {subsection}{\numberline {3.4.7}MyCudaIsPowerTwo()}{14}{subsection.3.4.7}%
+\contentsline {subsection}{\numberline {3.4.8}MyCudaPrefixSumTest()}{14}{subsection.3.4.8}%
