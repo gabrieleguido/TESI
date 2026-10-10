@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.9.29)  7 OCT 2026 18:38
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.9.29)  10 OCT 2026 17:03
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -568,7 +568,7 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `lmss' (encoding: T1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
-<sapienzalogo.pdf, id=96, 288.07625pt x 89.33376pt>
+<sapienzalogo.pdf, id=100, 288.07625pt x 89.33376pt>
 File: sapienzalogo.pdf Graphic file (type pdf)
 <use sapienzalogo.pdf>
 Package pdftex.def Info: sapienzalogo.pdf  used on input line 45.
@@ -615,15 +615,17 @@ Underfull \hbox (badness 10000) in paragraph at lines 45--45
 
 [2
 
-{/usr/share/texmf/fonts/enc/dvips/lm/lm-ts1.enc}]
-Underfull \hbox (badness 10000) in paragraph at lines 47--66
-
- []
-
-[3
+{/usr/share/texmf/fonts/enc/dvips/lm/lm-ts1.enc}] [3
 
 
 ] [4
+
+]
+Underfull \hbox (badness 10000) in paragraph at lines 48--67
+
+ []
+
+[5] [6
 
 ] (./report.toc
 LaTeX Font Info:    External font `lmex10' loaded for size
@@ -636,11 +638,11 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 \tf@toc=\write4
 \openout4 = `report.toc'.
 
- [5] [6
+ [7] [8
 
 ]
 Capitolo 1.
-LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 80.
+LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 81.
 (/usr/share/texmf/tex/latex/lm/t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
@@ -680,12 +682,46 @@ Underfull \hbox (badness 10000) in paragraph at lines 167--172
 
  []
 
-[5] [6] [7] [8]
-Underfull \hbox (badness 10000) in paragraph at lines 306--316
+[5] [6]
+Underfull \hbox (badness 10000) in paragraph at lines 246--247
 
  []
 
-[9] [10] [11] [12] [13] [14] [15] [16
+[7] [8]
+Underfull \hbox (badness 10000) in paragraph at lines 310--313
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 310--313
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 349--350
+
+ []
+
+[9]
+Underfull \hbox (badness 10000) in paragraph at lines 355--364
+
+ []
+
+
+Overfull \hbox (19.96907pt too wide) in paragraph at lines 355--364
+\T1/lmr/m/n/10.95 (-20) men-sio-ne po-ten-za di due (ve-ri-fi-ca ef-fet-tua-ta con fun-zio-ne au-si-lia-ria \T1/lmtt/m/n/10.95 MyCudaIsPowerTwo()\T1/lmr/m/n/10.95 (-20) ).
+ []
+
+[10] [11] [12] [13] [14] [15] [16]
+Capitolo 4.
+
+Underfull \hbox (badness 10000) in paragraph at lines 620--623
+
+ []
+
+[17
+
+] [18
 
 ] (./report.aux)
  ***********
@@ -693,21 +729,21 @@ LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2024-01-22>
  ***********
 Package rerunfilecheck Info: File `report.out' has not changed.
-(rerunfilecheck)             Checksum: 4C1CF7612E1EE237846DEB588A06B393;3072.
+(rerunfilecheck)             Checksum: E5F38FD5EB967EA5CA630B16CE9FE177;3192.
  ) 
 Here is how much of TeX's memory you used:
- 18177 strings out of 476098
- 286859 string characters out of 5793537
- 2131975 words of memory out of 5000000
- 39449 multiletter control sequences out of 15000+600000
- 638780 words of font info for 163 fonts, out of 8000000 for 9000
+ 18183 strings out of 476098
+ 286950 string characters out of 5793537
+ 2129975 words of memory out of 5000000
+ 39452 multiletter control sequences out of 15000+600000
+ 638686 words of font info for 162 fonts, out of 8000000 for 9000
  59 hyphenation exceptions out of 8191
  84i,13n,131p,1038b,2093s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf/fonts/type1/public/lm/lmbx10.pfb></usr/share/texmf/fonts/type1/public/lm/lmbx12.pfb></usr/share/texmf/fonts/type1/public/lm/lmr10.pfb></usr/share/texmf/fonts/type1/public/lm/lmr6.pfb></usr/share/texmf/fonts/type1/public/lm/lmr7.pfb></usr/share/texmf/fonts/type1/public/lm/lmri10.pfb></usr/share/texmf/fonts/type1/public/lm/lmss10.pfb></usr/share/texmf/fonts/type1/public/lm/lmss17.pfb></usr/share/texmf/fonts/type1/public/lm/lmssbx10.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt10.pfb></usr/share/texmf/fonts/type1/public/lm/lmtti10.pfb>
-Output written on report.pdf (22 pages, 331595 bytes).
+Output written on report.pdf (26 pages, 336032 bytes).
 PDF statistics:
- 636 PDF objects out of 1000 (max. 8388607)
- 581 compressed objects within 6 object streams
- 327 named destinations out of 1000 (max. 500000)
- 50878 words of extra memory for PDF output out of 51595 (max. 10000000)
+ 659 PDF objects out of 1000 (max. 8388607)
+ 600 compressed objects within 6 object streams
+ 332 named destinations out of 1000 (max. 500000)
+ 50886 words of extra memory for PDF output out of 51595 (max. 10000000)
 

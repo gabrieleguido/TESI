@@ -42,6 +42,7 @@
 
 \frontmatter
 \maketitle
+\dedication{Dedicato a nonna}
 
 \begin{abstract}
     La programmazione in CUDA \textit{(Compute Unified Device Architecture)} è il modo
@@ -84,22 +85,21 @@ che iterare l'operazione su tutte le N posizioni del nostro vettore.  Supponiamo
 \end{lstlisting}
 
 Volendo ottenere lo stesso risultato su una GPU, iterare in questo modo non avrebbe senso: per sfruttare
-la potenza di calcolo dobbiamo ottimizzare l'esecuzione. In questo esempio dobbiamo immaginare di assegnare ogni singola istruzione del ciclo a un singolo \texttt{core} del processore, ed è effettivamente quello che accade all'interno di una GPU: ogni \texttt{thread} (corrispondente a un singolo core) esegue lo stesso codice su una singola posizione dell'array.
+la potenza di calcolo dobbiamo ottimizzare l'esecuzione. In questo esempio dobbiamo immaginare di avere a disposizione N core contemporaneamente e di poter assegnare ogni singola istruzione del ciclo a ognuno di questi, ed è effettivamente quello che accade all'interno di una GPU: ogni \texttt{thread} (corrispondente a un singolo core) esegue lo stesso codice su una singola posizione dell'array.
 \begin{lstlisting}[language=C]
     dest[idx] = S * src[idx];
 \end{lstlisting}
 I thread lavorano veramente in parallelo e in questo modo il costo di questo semplice programma passa da essere lineare \textit{(O(n))} a costante \textit{(O(1))}. 
 \section{Griglia, Blocchi e Thread}
-Per poter gestire input con dimensione maggiore dei core (e quindi thread) che abbiamo a disposizione,
-l'esecuzione viene spezzata in blocchi: ogni blocco è grande quanto il numero massimo di thread a disposizione.
+Per poter gestire input con dimensione maggiore del numero di core (e quindi thread) che abbiamo a disposizione,
+l'esecuzione viene spezzata in blocchi: ogni blocco è grande quanto il numero massimo di thread.
 L'input viene processato come una griglia di blocchi quindi CUDA mette a disposizione dei programmatori 
 le informazioni come numero di thread (in un blocco), numero di blocco (nella griglia) e dimensione 
-del blocco. In questo modo possiamo tenere conto dello spostamento spaziale della nostra esecuzione, processando
-il nostro input come se fosse composto da tante "mattonelle" (da non confondere con le celle di un array).
+del blocco. In questo modo possiamo tenere conto dello spostamento spaziale della nostra esecuzione, processando il nostro input come se fosse composto da tante mattonelle (da non confondere con le celle di un array) passate una alla volta al processore.
 
 
 \chapter{Algoritmi}
-Nella libreria sono presenti già due algoritmi usati per testare il funzionamento delle funzioni.
+Nella libreria sono presenti già due algoritmi usati per testare la correttezza delle funzioni.
 Vediamo in generale cosa sono e a che servono. L'implementazione nella libreria si trova al capitolo di MyCuda, 
 qui mostrerò una realizzazione sequenziale equivalente (sempre in C) per capirne il meccanismo.
 \\\\
@@ -181,7 +181,7 @@ struct MyCudaItem{
 All'interno troviamo:
 \begin{itemize}
     \item \texttt{buffer\_size}: la dimensione dei due buffer;
-    \item \texttt{size}: parametro usato dai thread per sapere quando fermarsi (spesso la dimensione intermedia di un risultato coincide con quella del buffer iniziale);
+    \item \texttt{size}: parametro usato dai thread per sapere quando fermarsi (spesso la dimensione intermedia di un risultato non coincide con quella del buffer iniziale);
     \item \texttt{src\_buffer}: puntatore al buffer da processare;
     \item \texttt{dest\_buffer}: puntatore al buffer del risultato;
     \item \texttt{kernel\_fn}: puntatore alla funzione da simulare;
@@ -236,7 +236,15 @@ Una volta entrati nella funzione, i parametri vengono estratti dalla \texttt{str
 \section{Algoritmi}
 Vediamo due algoritmi di esempio implementati all'interno della libreria. Corrispondono alla versione parallela dei due visti nel capitolo 2.  
 \subsection{MyCudaReduction}
-Restituisce la somma di tutte le componenti di un vettore in input. 
+Restituisce la somma di tutte le componenti di un vettore in input.
+\begin{quote}\texttt{
+    Esempio di esecuzione: \\
+    src = 1 4 2 6 3 9 0 5\\
+    passo 1: dest = 5 8 12 5\\ 
+    passo 2: dest = 13 17 \\
+    passo 3: dest = 30 \\
+}
+\end{quote} 
 
 \paragraph{MyCudaReduction()}
 Questa funzione serve da "guscio" per l'esecuzione effettiva: crea i parametri,
@@ -271,7 +279,7 @@ void MyCudaReduction(MyCudaItem* cuda_item){
 L'esecuzione effettiva su GPU (o meglio la sua simulazione). Una volta estratti i parametri e verificato il 
 giusto posizionamento entro i limiti del buffer, si sommano due celle contigue di \texttt{src} e viene scritto il risultato della corrispondente posizione in \texttt{dest}. 
 
-\textbf{Nota:} ogni thread ha 2 celle dedicate e nessun altro interagisce con queste, preservando 
+\textbf{Nota:} ogni thread ha due celle dedicate di \texttt{src} e una di \texttt{dest}  e nessun altro interagisce con queste, preservando 
 la correttezza del codice. 
 
 \begin{lstlisting}[language=C]
@@ -292,11 +300,7 @@ void* MyCudaReductionKernel(void* args){
 \end{lstlisting}
 
 \subsection{MyCudaPrefixSum}
-Preso il vettore in input, restituisce un nuovo vettore in cui in ogni posizione è scritta la somma dei valori dall'inizio fino a quella posizione del vettore in input.
-
-\paragraph{MyCudaPrefixSum()}
-Anche stavolta ci serve una funzione di gestione che dall'esterno di occupa di parametri, esecuzioni e 
-chiamate al kernel. Questo algoritmo si divide in due passaggi: 
+Preso il vettore in input, restituisce un nuovo vettore in cui in ogni posizione è scritta la somma dei valori dall'inizio fino a quella posizione del vettore in input. Questo algoritmo si divide in due passaggi: 
 \begin{itemize}
     \item DownPass: scriviamo in \texttt{dest} le somme a coppie dell'input e il risultato
      viene poi sovrascritto nella rispettiva posizione pari della coppia in \texttt{src}. 
@@ -304,13 +308,57 @@ chiamate al kernel. Questo algoritmo si divide in due passaggi:
     le prime 2 posizioni.   
 \end{itemize}
 \textbf{DownPass} viene eseguito finchè la dimensione di \texttt{dest} è pari a 1. A quel punto invertiamo 
-i due buffer e risaliamo invocando \textbf{UpPass} a ogni passaggio, finchè torniamo alla dimensione iniziale 
-dell'input. Nella funzione gestisco le due chiamate nei momenti diversi semplcemente impostando 
-il campo \texttt{kernel\_fn} di MyCudaItem, sarà compito di \textbf{MyCudaKernelLaunch()} invocare la funzione 
+i due buffer e risaliamo invocando \textbf{UpPass} a ogni passaggio, finchè torniamo alla dimensione iniziale dell'input.
+\\\\\textbf{Nota:} quando mi riferisco alla due celle rispettive di un buffer è perchè durante i passaggi troviamo sempre due buffer con le dimensioni uno metà dell'altro e viceversa, quindi possiamo mapppare ogni cella del buffer piccolo a due celle del grande. \\
+\begin{quote}\texttt{
+    Esempio di esecuzione: \\
+    src = 1 2 3 4 2 3 1 4\\
+    passo 1a: \\
+    src = 1 2 3 4 2 3 1 4\\
+    dest = 3 7 5 5\\ 
+    passo 1b: \\
+    src = 1 3 3 7 2 5 1 5\\
+    dest = 3 7 5 5\\ 
+    passo 2a: \\
+    src = 3 7 5 5\\ 
+    dest = 10 10 \\
+    passo 2b: \\
+    src = 3 10 5 10\\ 
+    dest = 10 10 \\
+    passo 3a: \\
+    src = 10 10 \\
+    dest = 20\\
+    passo 3b: \\
+    src = 10 20 \\
+    dest = 20\\
+    passo 4: \\
+    src = 20 \\
+    dest = 10 20 \\ 
+    passo 5a: \\
+    src = 10 20 \\ 
+    dest 3 10 5 10 \\ 
+    passo 5b: \\
+    src = 10 20 \\ 
+    dest 3 10 15 20 \\ 
+    passo 6a: \\
+    src=  3 10 15 20 \\ 
+    dest = 1 3 3 7 2 5 1 5\\
+    passo 6b: \\
+    src=  3 10 15 20 \\ 
+    dest = 1 3 6 10 12 15 16 20\\
+    }
+
+\end{quote}
+
+
+\paragraph{MyCudaPrefixSum()}
+Anche stavolta ci serve una funzione di gestione che dall'esterno si occupa di parametri, esecuzioni e 
+chiamate al kernel. Nella funzione gestisco le due chiamate a DownPass e UpPass nei momenti diversi semplcemente impostando 
+il campo \texttt{kernel\_fn} di MyCudaItem prima delle chiamate, sarà compito di \textbf{MyCudaKernelLaunch()} invocare la funzione 
 puntata da quel campo. 
 \\\\
 \textbf{Nota:} Per evitare spreco di spazio, assumo negli algoritmi di avere dei buffer con dimensione 
-potenza di due (verifica effettuata con funzione ausiliaria \textbf{MyCudaIsPowerTwo()}). In questo 
+potenza di due (verifica effettuata con funzione ausiliaria \texttt{MyCudaIsPowerTwo()}). In questo 
 modo posso dividere il \texttt{dest} con dei sottobufffer contigui la cui dimensione si dimezza a 
 ogni passaggio: la dimensione totale alla fine sarà perfettamente contenuta nel buffer. Con questo meccanismo posso evitare di allocare ulteriore memoria per i passaggi intermedi. 
 
@@ -358,7 +406,7 @@ void MyCudaPrefixSum(MyCudaItem* cuda_item){
 \end{lstlisting}
 
 \paragraph{MyCudaPrefixDownPassKernel()}
-Questa è la funzione kernel della procedure \textbf{DownPass}, invocata finchè la dimensione del buffer di destinazione è 1. 
+Questa è la funzione kernel di \textbf{DownPass}, invocata finchè la dimensione del buffer di destinazione è 1. 
 
 \begin{lstlisting}[language=C]
 void* MyCudaPrefixDownPassKernel(void* args){
@@ -496,7 +544,7 @@ int MyCudaIterations(MyCudaItem* item){
 \end{lstlisting}
 
 \subsection{MyCudaSetThreadArgs()}
-Prepara gli argomenti da passare a ogni thread invocano il kernel\_launch. 
+Prepara gli argomenti da passare a ogni thread nella sua creazione.  
 \begin{lstlisting}[language=C]
 void MyCudaSetThreadArgs(ThreadArgs* targs,int threadIdx, int blockIdx, int* dest, int* src, int size){
     assert(targs && "ThreadArgs not valid");
@@ -509,7 +557,7 @@ void MyCudaSetThreadArgs(ThreadArgs* targs,int threadIdx, int blockIdx, int* des
 \end{lstlisting}
 
 \subsection{MyCudaIsPowerTwo()}
-Verifica se un numero è una potenza di due ed è usata per la verifica sulla dimensione di un buffer.  
+Verifica se un numero è una potenza di due.  
 \begin{lstlisting}[language=C]
 int MyCudaIsPowerTwo(int n){
     int res = n;
@@ -524,7 +572,7 @@ int MyCudaIsPowerTwo(int n){
 \end{lstlisting}
 
 \subsection{MyCudaPrefixSumTest()}
-Si occupa di verificare la correttezza di MyCudaPrefixSum comparando il risultato con quello di un algoritmo sequenziale. Gran parte della funzione consiste nella stampa dei risultati. Inizialmente genera dei valori casuali da usare come valori dei vettori, poi procede all'esecuzione nelle due modalità e alla fine stampa i risultati affiancandoli in modo da verifcare la correttezza.   
+Si occupa di verificare la correttezza di MyCudaPrefixSum comparando il risultato con quello di un algoritmo sequenziale. Gran parte della funzione consiste nella stampa dei risultati. Inizialmente genera dei valori casuali da inserire nel vettore di input, poi procede all'esecuzione nelle due modalità (sequenziale e parallela) e infine stampa i risultati affiancandoli in modo leggibile.   
 \begin{lstlisting}[language=C]
 void MyCudaPrefixSumTest(MyCudaItem* cuda_item,int max_n){
 
@@ -568,6 +616,10 @@ void MyCudaPrefixSumTest(MyCudaItem* cuda_item,int max_n){
 
 \end{lstlisting}
 
+\chapter{Uso e sviluppi}
+Come già detto non si tratta di una libreria che porta dei vantaggi prestazionali rispetto a un approccio tradizionale di programmare, lo scopo non è quello. L'obiettivo infatti è dare la possibilità a chiunque, anche chi non ha una GPU sul proprio computer, di poter scrivere e testare algoritmi che adottano la stessa meccanica che avrebbero se fossero scritti in CUDA. Una volta capite le funzionalità base infatti basta scrivere una funzione che rispetti le caratteristiche della computazione in parallelo. Mantenendo la coerenza dei protocolli di libreria (strutture dati ecc.) si può testare la funzione in pochi passaggi. 
+\\\\
+Al momento l'implementazione prevede unicamente l'utilizzo di vettori di interi, ma un possibile sviluppo della libreria potrebbe prevedere una riprogettazione della struttura \texttt{MyCudaItem} e di tutte le funzioni ausiliarie in modo da supportare la programmazione a oggetti, sfruttando meccanismi di ereditarietà e polimorfismo per poter aggiungere diversi tipi di dati. Dando uno sguardo a \texttt{MyCudaKernelLaunch()} si può notare subito la sua indipendenza dal tipo di dati trattati dalle funzioni, lasciando il compito al programmatore di occuparsi di questo aspetto e mantenendo una flessibilità sul tipo di funzioni da usare.  
 
 
 
